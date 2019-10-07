@@ -3,6 +3,7 @@ package DarkBunny;
 import DarkBunny.Brain.Controller.ActionController;
 import DarkBunny.Brain.Controller.ActionLibrary;
 import DarkBunny.Brain.Data.Information;
+import DarkBunny.Brain.Data.Mathics;
 import DarkBunny.Brain.States.*;
 import DarkBunny.Brain.predictions.Predictions;
 import DarkBunny.vector.Vector3;
@@ -36,15 +37,22 @@ public class DarkBunny implements Bot {
         actionLibrary = new ActionLibrary(info,predictions);
         actionController = new ActionController(info);
         statesList = new ArrayList<>();
-        state = new DriveForShotSide(info,actionLibrary,predictions);
-        statesList.add(state);
-        statesList.add(new TakeShot(info,actionLibrary,predictions));
+        state = new DriveForShotCenter(info,actionLibrary,predictions);
+        //statesList.add(new TakeShot(info,actionLibrary,predictions));
         statesList.add(new DriveForShotCenter(info,actionLibrary,predictions));
+        statesList.add(new DriveForAngledShotSide(info,actionLibrary,predictions));
+        statesList.add(new DriveForShotSide(info,actionLibrary,predictions));
         //statesList.add(new Getback(info,actionLibrary,predictions));
         //statesList.add(new DefenseTransition(info,actionLibrary,predictions));
         //statesList.add(new Defense(info,actionLibrary,predictions));
-        //statesList.add(new Clear(info,actionLibrary,predictions));
+        statesList.add(new Clear(info,actionLibrary,predictions));
         //statesList.add(new Kickoff(info,actionLibrary,predictions));
+
+
+        /*for(int i = 0; i < 3000; i+=100)
+        {
+            System.out.println("i:"+i+"\tCurve: "+Mathics.curvature(i)+"\t Estimated: "+Mathics.maxSpeedForCurvature(Mathics.curvature(i)));
+        }*/
     }
 
 
@@ -61,7 +69,7 @@ public class DarkBunny implements Bot {
         r.drawRectangle3d(Color.white,new Vector3(),10,10,true);
         for(State s : statesList)
         {
-            r.drawString2d(s.name + ": " +s.getRating(),Color.white,new Point(offx+20,(int)(offy+(400-s.getRating()*40))),1,1);
+            r.drawString2d(s.name + ": " +s.getRating(),s.isAvailable()?Color.white:Color.red,new Point(offx+20,(int)(offy+(400-s.getRating()*40))),1,1);
         }
     }
 
@@ -75,7 +83,15 @@ public class DarkBunny implements Bot {
             State max = state;
             for(State s : statesList)
             {
-                if(s.isAvailable()&&s.getRating()>max.getRating()||!max.isAvailable()&&s!=max)
+                if(state.name.equals("Drive for shot side"))
+                {
+                    if(s.name.equals("Drive for angled shot"))
+                        continue;
+                }
+                if(state.name.equals("Drive for angled shot"))
+                    if(s.name.equals("Drive for shot side"))
+                        continue;
+                if(!max.isAvailable()||s.isAvailable()&&s.getRating()>max.getRating())
                     max=s;
             }
             state = max;

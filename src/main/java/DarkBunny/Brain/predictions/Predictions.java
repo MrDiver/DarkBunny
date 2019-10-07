@@ -50,6 +50,11 @@ public class Predictions {
         }
     }
 
+    public boolean ballOnGround()
+    {
+        return info.ball.location().z < 100;
+    }
+
     public boolean facing(Vector3 location)
     {
         return Math.abs(info.car.transformToLocal(location).angle2D())< 0.3;

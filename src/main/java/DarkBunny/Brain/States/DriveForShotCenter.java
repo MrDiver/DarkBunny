@@ -4,10 +4,7 @@ import DarkBunny.Brain.Controller.AbstractAction;
 import DarkBunny.Brain.Controller.ActionLibrary;
 import DarkBunny.Brain.Controller.Bool;
 import DarkBunny.Brain.Controller.Value;
-import DarkBunny.Brain.Data.Ball;
-import DarkBunny.Brain.Data.CubicBezier;
-import DarkBunny.Brain.Data.Information;
-import DarkBunny.Brain.Data.Mathics;
+import DarkBunny.Brain.Data.*;
 import DarkBunny.Brain.predictions.Predictions;
 import DarkBunny.vector.Vector3;
 import rlbot.Bot;
@@ -34,8 +31,8 @@ public class DriveForShotCenter extends State {
         double distanceToBall = information.car.location().distance(information.ball.location());
         double distanceToBallFlat = information.car.location().make2D().distance(information.ball.location().make2D());
 
-
-        float futureTime = (float) ((distanceToBall)/information.car.speed());
+        //float futureTime = (float) ((distanceToBall)/information.car.speed()/1.6);
+        float futureTime = (float) ((Mathics.cap((float) (distanceToBallFlat-100),0,10000)/ 2500));
         ballPosition = predictions.ballFutureState(futureTime);
         if(ballPosition == null)
             ballPosition = information.ball;
@@ -45,27 +42,35 @@ public class DriveForShotCenter extends State {
         Vector3 carVector = information.car.orientation().noseVector;
         hitVector = diff.minus(goalPoint).scaledToMagnitude(distanceToBall/1.5);
 
-        float offset = 1;
+        float offset = 1.5f;
         /*if(Math.abs(information.ball.location().x)>2500)
             offset = 1.1f;*/
         hitVector = new Vector3(hitVector.x/offset,hitVector.y,hitVector.z);
 
-        hitVector.scaledToMagnitude(5000);
+        //hitVector.scaledToMagnitude(5000);
+        hitVector = hitVector.plus(new Vector3(information.ball.velocity().x/21,0,0));
 
         c = new CubicBezier(information.car.location(),carVector,ballPosition.location(),hitVector);
 
         Value angle = ()->(float)Math.pow(information.car.transformToLocal(target).angle2D()*8,3);
-        target = c.point(0.4);
+        target = c.point(0.45);
+        if(information.car.team() == Team.Blue)
+            target = new Vector3(target.x,Mathics.cap(target.y,information.car.location().y+120,100000),target.z);
+        else
+            target = new Vector3(target.x,Mathics.cap(target.y,information.car.location().y-120,-100000),target.z);
+        if(distanceToBall < 500)
+            target = ballPosition.location();
 
-
-        if(distanceToBallFlat > 1500 && c.turnradius(0.6)>1000 && information.car.speed()<1700 && angle.val() < 0.2 && information.car.speed()>1000)
+        if(information.ball.location().z<110 && distanceToBallFlat < 350)
+            return actionLibrary.diagonalFlick(angleToGoal,60,true);
+        /*if(distanceToBallFlat > 1500 && c.turnradius(0.6)>1000 && information.car.speed()<1700 && angle.val() < 0.2 && information.car.speed()>1000)
         {
             return actionLibrary.dodge(100,angle.val(),false);
-        }
+        }*/
         //0.4
         Value throttle = ()->Mathics.cap(1- Mathics.cap(Math.abs(angle.val()),0,0.4f)
                 - Mathics.cap((information.ball.location().z/2000),0,0.3f)
-                -(c.turnradius(0.5)<Mathics.turnRadius(information.car.speed())?0.7f:0f)
+                -(c.turnradius(0.5)<Mathics.turnRadius(information.car.speed())?0.3f:0f)
                 ,0,1);
         //Value throttle = ()-> Mathics.turnRadius(information.car.speed())>c.curvature(0.4)?1:-0.1f;
         Bool boost = () -> Math.abs(angle.val()) < 0.6 && throttle.val() > 0.7f;
@@ -116,11 +121,15 @@ public class DriveForShotCenter extends State {
         //if the ball is on our back side don't take a shot
         if(information.ballQuad().ordinal()<3)
             return false;
-        return Math.abs(information.ball.location().x)<=2000;
+
+        if(Math.abs(predictions.ballFutureState(1).location().x) < Math.abs(information.ball.location().x))
+            return true;
+
+        return Math.abs(information.ball.location().x)<=3000;
     }
 
     @Override
     public double getRating() {
-        return predictions.rightSide()&&predictions.facing(information.ball.location())?5:1;
+        return predictions.rightSide()?5:1;
     }
 }

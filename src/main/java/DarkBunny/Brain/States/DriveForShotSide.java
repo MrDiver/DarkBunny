@@ -34,6 +34,12 @@ public class DriveForShotSide extends State {
         double distanceToBall = information.car.location().distance(information.ball.location());
         double distanceToBallFlat = information.car.location().make2D().distance(information.ball.location().make2D());
 
+        if(distanceToBallFlat<300)
+        {
+            lock = true;
+        }else {
+            lock = false;
+        }
         float futureTime = (float) ((distanceToBall)/information.car.speed());
         ballPosition = predictions.ballFutureState(futureTime);
         if(ballPosition == null)
@@ -42,17 +48,17 @@ public class DriveForShotSide extends State {
         goalPoint = predictions.choosePointOnGoal(information.enemyGoal,diff);
         float angleToGoal = information.car.transformToLocal(goalPoint).angle2D();
 
-        if(Math.abs(angleToGoal)>1)
+        /*if(Math.abs(angleToGoal)>1)
         {
             float angleToBall = Mathics.cap(information.car.transformToLocal(information.ball.location()).angle2D()*2,-1,1);
             Bool slide = () -> predictions.facing(information.ball.location());
             return action(10).add(part(0,100).withThrottle(1).withSteer(angleToBall).withSlide(slide));
-        }
+        }*/
 
         Vector3 carVector = information.car.orientation().noseVector;
         hitVector = diff.minus(goalPoint).scaledToMagnitude(distanceToBall/1.5);
 
-        float offset = 1.05f;
+        float offset = 1.15f;
         if(Math.abs(information.ball.location().x)>3900)
             offset = 4f;
         hitVector = new Vector3(hitVector.x/offset,hitVector.y*Mathics.cap(Math.abs(angleToGoal*2),0,1.5f),hitVector.z);
@@ -61,6 +67,10 @@ public class DriveForShotSide extends State {
 
         c = new CubicBezier(information.car.location(),carVector,ballPosition.location(),hitVector);
         target = c.point(0.4);
+        if(distanceToBall < 400)
+        {
+            target = ballPosition.location();
+        }
 
         Value angle = ()->(float)Math.pow(information.car.transformToLocal(target).angle2D()*8,3);
         //0.4
@@ -69,16 +79,21 @@ public class DriveForShotSide extends State {
                 -(c.turnradius(0.5)<Mathics.turnRadius(information.car.speed())?0.7f:0f)
                 ,0,1);
         //Value throttle = ()-> Mathics.turnRadius(information.car.speed())>c.curvature(0.4)?1:-0.1f;
-        Bool boost = () -> Math.abs(angle.val()) < 0.6 && throttle.val() > 0.6f;
+        Bool boost = () -> Math.abs(angle.val()) < 0.6 && throttle.val() > 0.7f;
 
         /*if(distanceToBallFlat < 300&&Math.abs(angleToGoal)<0.4f || last != null && last.isActive())
         {
              last = actionLibrary.dodge(500);
         }
         else*/
+
+
+        if(distanceToBallFlat < 300)
         {
-            last = action(10).add(part(0,100).withThrottle(throttle).withSteer(angle).withBoost(boost));
+                return actionLibrary.dodge(200,angleToGoal,false);
         }
+        last = action(10).add(part(0,100).withThrottle(throttle).withSteer(angle).withBoost(boost));
+
         if(last == null)
             return action(0);
         return last;
@@ -119,11 +134,13 @@ public class DriveForShotSide extends State {
         //if the ball is on our back side don't take a shot
         if(information.ballQuad().ordinal()<3)
             return false;
+        if(Math.abs(predictions.ballFutureState(1).location().x)+100 < Math.abs(information.ball.location().x))
+            return false;
         return Math.abs(information.ball.location().x)>2000;
     }
 
     @Override
     public double getRating() {
-        return predictions.rightSide()?5:1;
+        return predictions.rightSide()?5.5:1;
     }
 }

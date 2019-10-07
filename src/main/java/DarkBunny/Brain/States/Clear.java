@@ -70,6 +70,6 @@ public class Clear extends State{
 
     @Override
     public double getRating() {
-        return 6.5;
+        return information.ballQuad().ordinal()<3?0:6.5;
     }
 }
