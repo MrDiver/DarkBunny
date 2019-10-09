@@ -54,6 +54,7 @@ public class DriveForShotCenter extends State {
 
         Value angle = ()->(float)Math.pow(information.car.transformToLocal(target).angle2D()*8,3);
         target = c.point(0.45);
+        if(Math.abs(information.ball.location().y)> Math.abs(information.car.location().y))
         if(information.car.team() == Team.Blue)
             target = new Vector3(target.x,Mathics.cap(target.y,information.car.location().y+120,100000),target.z);
         else

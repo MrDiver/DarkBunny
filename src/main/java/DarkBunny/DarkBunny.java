@@ -46,6 +46,7 @@ public class DarkBunny implements Bot {
         //statesList.add(new DefenseTransition(info,actionLibrary,predictions));
         //statesList.add(new Defense(info,actionLibrary,predictions));
         statesList.add(new Clear(info,actionLibrary,predictions));
+        statesList.add(new Test(info,actionLibrary,predictions));
         //statesList.add(new Kickoff(info,actionLibrary,predictions));
 
 
